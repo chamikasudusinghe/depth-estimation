@@ -1,0 +1,6 @@
+model,num_images,mean_s,min_s,max_s
+depth-anything/DA3NESTED-GIANT-LARGE-1.1,6,0.2611,0.1528,0.7541
+depth-anything/DA3-GIANT-1.1,6,0.1187,0.1108,0.1260
+depth-anything/DA3-LARGE-1.1,6,0.0854,0.0829,0.0928
+depth-anything/DA3-BASE,6,0.0712,0.0626,0.0888
+depth-anything/DA3-SMALL,6,0.0754,0.0582,0.1011

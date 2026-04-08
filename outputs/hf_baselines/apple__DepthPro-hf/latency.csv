@@ -1,0 +1,7 @@
+model,image,latency_seconds
+apple/DepthPro-hf,/home/chamika2/depth-estimation/images/sample5/cat-1.jpg,0.532966
+apple/DepthPro-hf,/home/chamika2/depth-estimation/images/sample5/construction-site.jpg,0.268655
+apple/DepthPro-hf,/home/chamika2/depth-estimation/images/sample5/football-match.jpg,0.307645
+apple/DepthPro-hf,/home/chamika2/depth-estimation/images/sample5/office.jpg,0.341119
+apple/DepthPro-hf,/home/chamika2/depth-estimation/images/sample5/palace.jpg,0.226572
+apple/DepthPro-hf,/home/chamika2/depth-estimation/images/sample5/tiger.jpg,0.271077

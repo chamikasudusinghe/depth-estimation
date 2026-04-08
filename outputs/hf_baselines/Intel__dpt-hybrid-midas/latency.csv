@@ -1,0 +1,7 @@
+model,image,latency_seconds
+Intel/dpt-hybrid-midas,/home/chamika2/depth-estimation/images/sample5/cat-1.jpg,0.320488
+Intel/dpt-hybrid-midas,/home/chamika2/depth-estimation/images/sample5/construction-site.jpg,0.238513
+Intel/dpt-hybrid-midas,/home/chamika2/depth-estimation/images/sample5/football-match.jpg,0.159096
+Intel/dpt-hybrid-midas,/home/chamika2/depth-estimation/images/sample5/office.jpg,0.075154
+Intel/dpt-hybrid-midas,/home/chamika2/depth-estimation/images/sample5/palace.jpg,0.177912
+Intel/dpt-hybrid-midas,/home/chamika2/depth-estimation/images/sample5/tiger.jpg,0.233239

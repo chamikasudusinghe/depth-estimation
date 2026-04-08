@@ -1,0 +1,7 @@
+model,image,latency_seconds
+NVIDIA-TAO/NvDepthAnythingV2-Large,/home/chamika2/depth-estimation/images/sample5/cat-1.jpg,8.410259
+NVIDIA-TAO/NvDepthAnythingV2-Large,/home/chamika2/depth-estimation/images/sample5/construction-site.jpg,8.410259
+NVIDIA-TAO/NvDepthAnythingV2-Large,/home/chamika2/depth-estimation/images/sample5/football-match.jpg,8.410259
+NVIDIA-TAO/NvDepthAnythingV2-Large,/home/chamika2/depth-estimation/images/sample5/office.jpg,8.410259
+NVIDIA-TAO/NvDepthAnythingV2-Large,/home/chamika2/depth-estimation/images/sample5/palace.jpg,8.410259
+NVIDIA-TAO/NvDepthAnythingV2-Large,/home/chamika2/depth-estimation/images/sample5/tiger.jpg,8.410259

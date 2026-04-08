@@ -1,0 +1,6 @@
+model,num_images,mean_s,min_s,max_s
+depth-anything/Depth-Anything-V2-Small-hf,6,0.1412,0.0450,0.3762
+Intel/dpt-hybrid-midas,6,0.2007,0.0752,0.3205
+Intel/dpt-large,6,0.1457,0.0871,0.2092
+Intel/zoedepth-nyu-kitti,6,1.4695,1.0051,1.9055
+apple/DepthPro-hf,6,0.3247,0.2266,0.5330

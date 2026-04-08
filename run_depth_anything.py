@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 
-IMAGES_DIR = "/home/chamika2/tao-projects/depth-estimation/images/sample5"
-PROJECT_ROOT = "/home/chamika2/tao-projects/depth-estimation"
+IMAGES_DIR = "/home/chamika2/depth-estimation/images/sample5"
+PROJECT_ROOT = "/home/chamika2/depth-estimation"
 
 HF_BASELINES = [
     "depth-anything/Depth-Anything-V2-Small-hf",
@@ -119,17 +119,15 @@ def run_da3_model(image_paths: list[str], model_name: str, outputs_root: str) ->
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DepthAnything3.from_pretrained(model_name).to(device=device)
 
-    t0 = time.perf_counter()
-    prediction = model.inference(image_paths)
-    total_lat = time.perf_counter() - t0
-    per_image_lat = total_lat / len(image_paths)
-
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["model", "image", "latency_seconds"])
-        for i, p in enumerate(image_paths):
+        for p in image_paths:
             img = Image.open(p).convert("RGB")
-            pred_np = prediction.depth[i]
+            t0 = time.perf_counter()
+            prediction = model.inference([p])
+            lat = time.perf_counter() - t0
+            pred_np = prediction.depth[0]
             if pred_np.shape[:2] != (img.height, img.width):
                 pred_np = np.array(
                     Image.fromarray(pred_np.astype(np.float32), mode="F").resize(
@@ -140,7 +138,7 @@ def run_da3_model(image_paths: list[str], model_name: str, outputs_root: str) ->
             depth_u8 = normalize_depth(pred_np, invert=True)
             Image.fromarray(depth_u8).save(os.path.join(pred_dir, f"{base}_pred.png"))
             save_viz(np.array(img), depth_u8, os.path.join(viz_dir, f"{base}_panel.png"))
-            w.writerow([model_name, p, f"{per_image_lat:.6f}"])
+            w.writerow([model_name, p, f"{lat:.6f}"])
 
     print(f"[{model_name}] done -> {pred_dir}")
     return csv_path

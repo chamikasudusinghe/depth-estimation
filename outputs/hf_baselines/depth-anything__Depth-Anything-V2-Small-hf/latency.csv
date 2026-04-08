@@ -1,0 +1,7 @@
+model,image,latency_seconds
+depth-anything/Depth-Anything-V2-Small-hf,/home/chamika2/depth-estimation/images/sample5/cat-1.jpg,0.376156
+depth-anything/Depth-Anything-V2-Small-hf,/home/chamika2/depth-estimation/images/sample5/construction-site.jpg,0.106545
+depth-anything/Depth-Anything-V2-Small-hf,/home/chamika2/depth-estimation/images/sample5/football-match.jpg,0.156997
+depth-anything/Depth-Anything-V2-Small-hf,/home/chamika2/depth-estimation/images/sample5/office.jpg,0.055854
+depth-anything/Depth-Anything-V2-Small-hf,/home/chamika2/depth-estimation/images/sample5/palace.jpg,0.045040
+depth-anything/Depth-Anything-V2-Small-hf,/home/chamika2/depth-estimation/images/sample5/tiger.jpg,0.106629

@@ -1,0 +1,2 @@
+model,num_images,mean_s,min_s,max_s
+NVIDIA-TAO/NvDepthAnythingV2-Large,6,8.4103,8.4103,8.4103

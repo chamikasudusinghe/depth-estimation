@@ -1,0 +1,7 @@
+model,image,latency_seconds
+depth-anything/DA3-GIANT-1.1,/home/chamika2/depth-estimation/images/sample5/cat-1.jpg,0.110830
+depth-anything/DA3-GIANT-1.1,/home/chamika2/depth-estimation/images/sample5/construction-site.jpg,0.125286
+depth-anything/DA3-GIANT-1.1,/home/chamika2/depth-estimation/images/sample5/football-match.jpg,0.125951
+depth-anything/DA3-GIANT-1.1,/home/chamika2/depth-estimation/images/sample5/office.jpg,0.116860
+depth-anything/DA3-GIANT-1.1,/home/chamika2/depth-estimation/images/sample5/palace.jpg,0.111080
+depth-anything/DA3-GIANT-1.1,/home/chamika2/depth-estimation/images/sample5/tiger.jpg,0.122021

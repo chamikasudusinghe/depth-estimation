@@ -1,0 +1,7 @@
+model,image,latency_seconds
+Intel/dpt-large,/home/chamika2/depth-estimation/images/sample5/cat-1.jpg,0.209223
+Intel/dpt-large,/home/chamika2/depth-estimation/images/sample5/construction-site.jpg,0.155281
+Intel/dpt-large,/home/chamika2/depth-estimation/images/sample5/football-match.jpg,0.088189
+Intel/dpt-large,/home/chamika2/depth-estimation/images/sample5/office.jpg,0.198429
+Intel/dpt-large,/home/chamika2/depth-estimation/images/sample5/palace.jpg,0.087082
+Intel/dpt-large,/home/chamika2/depth-estimation/images/sample5/tiger.jpg,0.135700

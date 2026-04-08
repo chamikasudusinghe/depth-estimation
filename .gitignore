@@ -1,32 +1,17 @@
-# Model checkpoints and weights
 checkpoints/
+outputs/tao_depth_net/
 *.pth
 *.onnx
 *.trt
 *.engine
-
-# Generated outputs (reproducible via script)
-outputs/
-
-# PyTorch / Python
 __pycache__/
 *.pyc
 *.pyo
-
-# OS
 .DS_Store
 Thumbs.db
-
-# IDE
 .vscode/
 .idea/
-
-# NGC CLI (if re-downloaded)
 tools/
-
-# HuggingFace cache
 .cache/
-
-# Temp files
 *.tmp
 *.bak

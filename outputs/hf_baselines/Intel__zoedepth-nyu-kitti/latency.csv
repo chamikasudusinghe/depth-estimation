@@ -1,0 +1,7 @@
+model,image,latency_seconds
+Intel/zoedepth-nyu-kitti,/home/chamika2/depth-estimation/images/sample5/cat-1.jpg,1.891821
+Intel/zoedepth-nyu-kitti,/home/chamika2/depth-estimation/images/sample5/construction-site.jpg,1.005103
+Intel/zoedepth-nyu-kitti,/home/chamika2/depth-estimation/images/sample5/football-match.jpg,1.378314
+Intel/zoedepth-nyu-kitti,/home/chamika2/depth-estimation/images/sample5/office.jpg,1.334585
+Intel/zoedepth-nyu-kitti,/home/chamika2/depth-estimation/images/sample5/palace.jpg,1.905504
+Intel/zoedepth-nyu-kitti,/home/chamika2/depth-estimation/images/sample5/tiger.jpg,1.301855
