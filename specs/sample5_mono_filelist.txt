@@ -1,0 +1,6 @@
+/home/chamika2/tao-projects/depth-estimation/images/sample5/cat-1.jpg
+/home/chamika2/tao-projects/depth-estimation/images/sample5/construction-site.jpg
+/home/chamika2/tao-projects/depth-estimation/images/sample5/football-match.jpg
+/home/chamika2/tao-projects/depth-estimation/images/sample5/office.jpg
+/home/chamika2/tao-projects/depth-estimation/images/sample5/palace.jpg
+/home/chamika2/tao-projects/depth-estimation/images/sample5/tiger.jpg
