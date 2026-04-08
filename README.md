@@ -1,6 +1,6 @@
 # Monocular Depth Estimation Benchmarks
 
-Benchmarkss formonocular depth estimation models on sample images (800x600).
+Benchmarks for monocular depth estimation models on sample images (800x600).
 
 ## Usage
 
@@ -12,7 +12,7 @@ python run_depth_anything.py --mode tao
 
 ## Results
 
-GPU: NVIDIA A100 80GB PCIe
+GPU: NVIDIA A100 (80GB)
 
 ### HuggingFace Baselines
 
@@ -37,7 +37,7 @@ GPU: NVIDIA A100 80GB PCIe
 ### NVIDIA TAO Toolkit
 
 | Model | Mean (s) |
-|---|---:|---:|---:|
+|---|---:|
 | NvDepthAnythingV2-Large | 8.4103 |
 
 Note: TAO latency includes Docker container startup.
