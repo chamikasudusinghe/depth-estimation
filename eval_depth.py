@@ -31,6 +31,7 @@ DA3_MODELS = [
     "depth-anything/DA3-LARGE-1.1",
     "depth-anything/DA3-BASE",
     "depth-anything/DA3-SMALL",
+    "depth-anything/DA3METRIC-LARGE",
 ]
 
 INVERT_MODELS = {
