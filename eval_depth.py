@@ -13,6 +13,7 @@ import time
 
 import numpy as np
 from PIL import Image
+from scipy.ndimage import gaussian_filter, sobel, distance_transform_edt
 
 PROJECT_ROOT = "/home/chamika2/depth-estimation"
 DEPTH_SCALE = 6553.5
@@ -91,6 +92,11 @@ def compute_metrics(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray) -> dict:
     rmse = np.sqrt(np.mean((p - g) ** 2))
     rmse_log = np.sqrt(np.mean((np.log(p) - np.log(g)) ** 2))
 
+    ssim = compute_ssim(pred, gt, mask)
+    grad_err = compute_gradient_error(pred, gt, mask)
+    edge_acc, edge_comp = compute_edge_metrics(pred, gt, mask)
+    ord_err = compute_ordinal_error(pred, gt, mask)
+
     return {
         "abs_rel": abs_rel,
         "sq_rel": sq_rel,
@@ -99,7 +105,73 @@ def compute_metrics(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray) -> dict:
         "delta1": d1,
         "delta2": d2,
         "delta3": d3,
+        "ssim": ssim,
+        "grad_err": grad_err,
+        "edge_acc": edge_acc,
+        "edge_comp": edge_comp,
+        "ord_err": ord_err,
     }
+
+
+def compute_ssim(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray,
+                 sigma: float = 1.5) -> float:
+    L = max(gt[mask].max() - gt[mask].min(), 1e-6)
+    C1 = (0.01 * L) ** 2
+    C2 = (0.03 * L) ** 2
+
+    mu_p = gaussian_filter(pred, sigma)
+    mu_g = gaussian_filter(gt, sigma)
+    sigma_p2 = gaussian_filter(pred ** 2, sigma) - mu_p ** 2
+    sigma_g2 = gaussian_filter(gt ** 2, sigma) - mu_g ** 2
+    sigma_pg = gaussian_filter(pred * gt, sigma) - mu_p * mu_g
+
+    num = (2 * mu_p * mu_g + C1) * (2 * sigma_pg + C2)
+    den = (mu_p ** 2 + mu_g ** 2 + C1) * (sigma_p2 + sigma_g2 + C2)
+    ssim_map = num / den
+    return float(ssim_map[mask].mean())
+
+
+def compute_gradient_error(pred: np.ndarray, gt: np.ndarray,
+                           mask: np.ndarray) -> float:
+    pred_dx, pred_dy = sobel(pred, axis=1), sobel(pred, axis=0)
+    gt_dx, gt_dy = sobel(gt, axis=1), sobel(gt, axis=0)
+    err = (pred_dx[mask] - gt_dx[mask]) ** 2 + (pred_dy[mask] - gt_dy[mask]) ** 2
+    return float(np.sqrt(np.mean(err)))
+
+
+def compute_edge_metrics(pred: np.ndarray, gt: np.ndarray,
+                         mask: np.ndarray, pct: float = 90,
+                         tolerance: int = 3) -> tuple[float, float]:
+    gt_mag = np.sqrt(sobel(gt, 0) ** 2 + sobel(gt, 1) ** 2)
+    pred_mag = np.sqrt(sobel(pred, 0) ** 2 + sobel(pred, 1) ** 2)
+
+    gt_edges = (gt_mag > np.percentile(gt_mag[mask], pct)) & mask
+    pred_edges = (pred_mag > np.percentile(pred_mag[mask], pct)) & mask
+
+    if gt_edges.sum() == 0 or pred_edges.sum() == 0:
+        return 0.0, 0.0
+
+    gt_dist = distance_transform_edt(~gt_edges)
+    pred_dist = distance_transform_edt(~pred_edges)
+
+    accuracy = float((gt_dist[pred_edges] <= tolerance).mean())
+    completeness = float((pred_dist[gt_edges] <= tolerance).mean())
+    return accuracy, completeness
+
+
+def compute_ordinal_error(pred: np.ndarray, gt: np.ndarray,
+                          mask: np.ndarray, n_pairs: int = 50000) -> float:
+    ys, xs = np.where(mask)
+    if len(ys) < 2:
+        return 0.0
+    rng = np.random.RandomState(42)
+    idx = rng.choice(len(ys), size=(n_pairs, 2), replace=True)
+    gt_diff = gt[ys[idx[:, 0]], xs[idx[:, 0]]] - gt[ys[idx[:, 1]], xs[idx[:, 1]]]
+    pred_diff = pred[ys[idx[:, 0]], xs[idx[:, 0]]] - pred[ys[idx[:, 1]], xs[idx[:, 1]]]
+    valid = np.abs(gt_diff) > 1e-6
+    if valid.sum() == 0:
+        return 0.0
+    return float((gt_diff[valid] * pred_diff[valid] < 0).mean())
 
 
 def run_hf_eval(pairs, model_name: str, warmup: int):
@@ -221,8 +293,9 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     csv_path = os.path.join(out_dir, "eval_results.csv")
     fields = ["model", "num_images", "abs_rel", "sq_rel", "rmse", "rmse_log",
-              "delta1", "delta2", "delta3", "mean_latency", "std_latency",
-              "min_latency", "max_latency"]
+              "delta1", "delta2", "delta3",
+              "ssim", "grad_err", "edge_acc", "edge_comp", "ord_err",
+              "mean_latency", "std_latency", "min_latency", "max_latency"]
     with open(csv_path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
@@ -231,11 +304,11 @@ def main():
             w.writerow(row)
 
     print(f"\nResults saved to {csv_path}")
-    print(f"\n{'Model':<45} {'AbsRel':>8} {'RMSE':>8} {'δ<1.25':>8} {'δ<1.25²':>8} {'δ<1.25³':>8} {'Lat(s)':>8}")
-    print("-" * 105)
+    print(f"\n{'Model':<45} {'AbsRel':>8} {'SSIM':>8} {'GradErr':>8} {'EdgeAcc':>8} {'EdgeCmp':>8} {'OrdErr':>8} {'Lat(s)':>8}")
+    print("-" * 125)
     for r in sorted(results, key=lambda x: x["abs_rel"]):
-        print(f"{r['model']:<45} {r['abs_rel']:8.4f} {r['rmse']:8.4f} "
-              f"{r['delta1']:8.4f} {r['delta2']:8.4f} {r['delta3']:8.4f} {r['mean_latency']:8.4f}")
+        print(f"{r['model']:<45} {r['abs_rel']:8.4f} {r['ssim']:8.4f} {r['grad_err']:8.4f} "
+              f"{r['edge_acc']:8.4f} {r['edge_comp']:8.4f} {r['ord_err']:8.4f} {r['mean_latency']:8.4f}")
 
 
 if __name__ == "__main__":
