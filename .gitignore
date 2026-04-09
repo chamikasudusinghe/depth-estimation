@@ -1,5 +1,7 @@
 checkpoints/
 outputs/tao_depth_net/
+datasets/
+outputs/
 *.pth
 *.onnx
 *.trt
