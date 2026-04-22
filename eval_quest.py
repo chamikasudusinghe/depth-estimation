@@ -9,6 +9,10 @@ from scipy.ndimage import gaussian_filter, sobel, distance_transform_edt
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
+
+def slugify(name: str) -> str:
+    return name.split("/")[-1].removesuffix("-hf")
+
 INVERT_MODELS = {
     "depth-anything/Depth-Anything-V2-Small-hf",
     "Intel/dpt-hybrid-midas",
@@ -40,11 +44,10 @@ def load_pairs(dataset_dir: str, num_images: int) -> list[dict]:
     pairs = []
     with open(meta_path) as f:
         for row in csv.DictReader(f):
-            rgb_path  = os.path.join(dataset_dir, "rgb",        f"{row['rgb_ts']}.jpg")
-            gt_path   = os.path.join(dataset_dir, "gt_depth",   f"{row['depth_ts']}.npy")
-            pred_path = os.path.join(dataset_dir, "pred_depth",  f"{row['rgb_ts']}.npy")
+            rgb_path = os.path.join(dataset_dir, "rgb",      f"{row['rgb_ts']}.png")
+            gt_path  = os.path.join(dataset_dir, "depth", f"{row['depth_ts']}.npy")
             if os.path.isfile(rgb_path) and os.path.isfile(gt_path):
-                pairs.append({"rgb": rgb_path, "gt": gt_path, "pred": pred_path})
+                pairs.append({"rgb": rgb_path, "gt": gt_path})
     if num_images > 0:
         pairs = pairs[:num_images]
     return pairs
@@ -71,8 +74,7 @@ def compute_metrics(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray) -> dict:
         delta3   = float((thresh < 1.25 ** 3).mean()),
         ssim     = _ssim(pred, gt, mask),
         grad_err = _grad_err(pred, gt, mask),
-        edge_acc = _edge_metrics(pred, gt, mask)[0],
-        edge_comp= _edge_metrics(pred, gt, mask)[1],
+        **dict(zip(("edge_acc", "edge_comp"), _edge_metrics(pred, gt, mask))),
         ord_err  = _ordinal_err(pred, gt, mask),
     )
 
@@ -176,21 +178,23 @@ def main():
     parser.add_argument("--warmup", type=int, default=2)
     args = parser.parse_args()
 
-    if not args.load_preds and not args.model:
-        parser.error("Provide --model to run inference, or --load-preds to use existing predictions")
+    if not args.model:
+        parser.error("--model is required (use with --save-preds to run inference, or --load-preds to reload saved predictions)")
 
     pairs = load_pairs(args.dataset_dir, args.num_images)
     if not pairs:
         raise ValueError(f"No pairs found in {args.dataset_dir}")
     print(f"Loaded {len(pairs)} pairs")
 
-    pred_depth_dir = os.path.join(args.dataset_dir, "pred_depth")
-    model_label    = args.model or "pre-computed"
+    model_label    = args.model
+    model_slug     = slugify(model_label)
+    pred_depth_dir = os.path.join(args.dataset_dir, "pred_depth", model_slug)
 
     if args.load_preds:
-        missing = [p for p in pairs if not os.path.isfile(p["pred"])]
+        missing = [p for p in pairs if not os.path.isfile(
+            os.path.join(pred_depth_dir, os.path.splitext(os.path.basename(p["rgb"]))[0] + ".npy"))]
         if missing:
-            raise FileNotFoundError(f"{len(missing)} pred_depth files missing")
+            raise FileNotFoundError(f"{len(missing)} pred_depth files missing in {pred_depth_dir}")
         def get_pred(rgb_path):
             ts = os.path.splitext(os.path.basename(rgb_path))[0]
             return np.load(os.path.join(pred_depth_dir, f"{ts}.npy")).astype(np.float64), 0.0
@@ -205,9 +209,11 @@ def main():
         def get_pred(rgb_path):
             return predict_da3(model, rgb_path)
     else:
+        import torch
         from transformers import pipeline as hf_pipeline
         invert = args.model in INVERT_MODELS
-        pipe   = hf_pipeline(task="depth-estimation", model=args.model)
+        device = 0 if torch.cuda.is_available() else -1
+        pipe   = hf_pipeline(task="depth-estimation", model=args.model, device=device)
         for i in range(args.warmup):
             predict_hf(pipe, pairs[i % len(pairs)]["rgb"], invert)
         print(f"[{args.model}] warmup done")
@@ -217,7 +223,8 @@ def main():
     results = evaluate(pairs, get_pred, pred_depth_dir if args.save_preds else None)
     results["model"] = model_label
 
-    out_dir  = os.path.join(PROJECT_ROOT, "outputs", "quest")
+    session  = os.path.basename(os.path.normpath(args.dataset_dir))
+    out_dir  = os.path.join(PROJECT_ROOT, "outputs", "quest", session)
     os.makedirs(out_dir, exist_ok=True)
     csv_path = os.path.join(out_dir, "eval_results.csv")
 

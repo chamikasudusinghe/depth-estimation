@@ -115,6 +115,13 @@ class PoseInterpolator:
         return pos, rot
 
 
+def make_c2w(pos: np.ndarray, quat: np.ndarray) -> np.ndarray:
+    c2w = np.eye(4, dtype=np.float32)
+    c2w[:3, :3] = R.from_quat(quat).as_matrix().astype(np.float32)
+    c2w[:3, 3] = pos.astype(np.float32)
+    return c2w
+
+
 def nearest_ts(query: int, candidates: np.ndarray) -> int:
     return int(candidates[np.argmin(np.abs(candidates - query))])
 
@@ -153,8 +160,10 @@ def main():
             raise FileNotFoundError(p)
 
     (out / "rgb").mkdir(parents=True, exist_ok=True)
-    (out / "gt_depth").mkdir(parents=True, exist_ok=True)
+    (out / "depth").mkdir(parents=True, exist_ok=True)
     (out / "pred_depth").mkdir(parents=True, exist_ok=True)
+    (out / "rgb_extrinsics").mkdir(parents=True, exist_ok=True)
+    (out / "depth_extrinsics").mkdir(parents=True, exist_ok=True)
 
     with open(fmt_json) as f:
         fmt = json.load(f)
@@ -235,11 +244,18 @@ def main():
             )
 
             raw_yuv = np.fromfile(yuv_path, dtype=np.uint8)
-            cv2.imwrite(str(out / "rgb" / f"{rgb_ts}.jpg"),
+            cv2.imwrite(str(out / "rgb" / f"{rgb_ts}.png"),
                         yuv420_888_to_bgr(raw_yuv, width, height, planes))
 
-            np.save(str(out / "gt_depth" / f"{depth_ts}.npy"),
+            np.save(str(out / "depth" / f"{depth_ts}.npy"),
                     ndc_to_linear_depth(depth_ndc, meta["near"], meta["far"]))
+
+            np.save(str(out / "rgb_extrinsics" / f"{rgb_ts}.npy"),
+                    make_c2w(rgb_pos, rgb_rot))
+            depth_quat = np.array([meta["rx"], meta["ry"], meta["rz"], meta["rw"]])
+            depth_pos  = np.array([meta["px"], meta["py"], meta["pz"]])
+            np.save(str(out / "depth_extrinsics" / f"{depth_ts}.npy"),
+                    make_c2w(depth_pos, depth_quat))
 
             writer.writerow({
                 "rgb_ts": rgb_ts, "depth_ts": depth_ts,
