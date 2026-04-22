@@ -1,6 +1,8 @@
 checkpoints/
 outputs/tao_depth_net/
-outputs/
+outputs/hf_baselines/
+outputs/tao/
+outputs/da3/
 data/
 *.pth
 *.onnx
