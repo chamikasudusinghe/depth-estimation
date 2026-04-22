@@ -15,7 +15,7 @@ import numpy as np
 from PIL import Image
 from scipy.ndimage import gaussian_filter, sobel, distance_transform_edt
 
-PROJECT_ROOT = "/home/chamika2/depth-estimation"
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 DEPTH_SCALE = 6553.5
 
 HF_BASELINES = [
