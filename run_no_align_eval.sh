@@ -14,18 +14,6 @@ METRIC_MODELS=(
 
 cd "$(dirname "$0")"
 
-# Run inference and save both pred_depth/ (aligned) and pred_depth_metric/ (raw)
-for session in "${SESSIONS[@]}"; do
-    for model in "${METRIC_MODELS[@]}"; do
-        echo "=== inference | $session | $model ==="
-        python eval_quest.py \
-            --dataset-dir "$DATASET_DIR/$session" \
-            --model "$model" \
-            --save-preds
-    done
-done
-
-# Compute no-align metrics from the saved raw predictions
 for session in "${SESSIONS[@]}"; do
     for model in "${METRIC_MODELS[@]}"; do
         echo "=== no-align eval | $session | $model ==="

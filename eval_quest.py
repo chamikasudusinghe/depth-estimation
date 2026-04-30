@@ -150,7 +150,7 @@ def resize_to(arr: np.ndarray, h: int, w: int) -> np.ndarray:
 
 
 def evaluate(pairs: list[dict], get_pred, save_dir: str | None,
-             metric_save_dir: str | None = None) -> dict:
+             metric_save_dir: str | None = None, align: bool = True) -> dict:
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
     if metric_save_dir:
@@ -166,10 +166,10 @@ def evaluate(pairs: list[dict], get_pred, save_dir: str | None,
             np.save(os.path.join(metric_save_dir, f"{ts}.npy"), pred.astype(np.float32))
         if pred.shape != gt.shape:
             pred = resize_to(pred, gt.shape[0], gt.shape[1])
-        pred_aligned = align_scale_shift(pred, gt, mask)
-        all_metrics.append(compute_metrics(pred_aligned, gt, mask))
+        pred_eval = align_scale_shift(pred, gt, mask) if align else pred
+        all_metrics.append(compute_metrics(pred_eval, gt, mask))
         if save_dir:
-            np.save(os.path.join(save_dir, f"{ts}.npy"), pred_aligned.astype(np.float32))
+            np.save(os.path.join(save_dir, f"{ts}.npy"), pred_eval.astype(np.float32))
     avg = {k: float(np.mean([m[k] for m in all_metrics])) for k in all_metrics[0]}
     avg["mean_latency_ms"] = float(np.mean(latencies))
     avg["min_latency_ms"]  = float(np.min(latencies))
@@ -184,12 +184,16 @@ def main():
     parser.add_argument("--model")
     parser.add_argument("--load-preds", action="store_true")
     parser.add_argument("--save-preds", action="store_true")
+    parser.add_argument("--no-align", action="store_true",
+                        help="Load raw predictions from pred_depth_metric/ and skip scale-shift alignment")
     parser.add_argument("--num-images", type=int, default=0)
     parser.add_argument("--warmup", type=int, default=2)
     args = parser.parse_args()
 
     if not args.model:
         parser.error("--model is required (use with --save-preds to run inference, or --load-preds to reload saved predictions)")
+    if args.no_align and args.model not in METRIC_MODELS:
+        parser.error(f"--no-align is only valid for metric models: {METRIC_MODELS}")
 
     pairs = load_pairs(args.dataset_dir, args.num_images)
     if not pairs:
@@ -198,14 +202,14 @@ def main():
 
     model_label       = args.model
     model_slug        = slugify(model_label)
-    pred_depth_dir    = os.path.join(args.dataset_dir, "pred_depth", model_slug)
+    pred_depth_dir    = os.path.join(args.dataset_dir, "pred_depth_metric" if args.no_align else "pred_depth", model_slug)
     metric_depth_dir  = (
         os.path.join(args.dataset_dir, "pred_depth_metric", model_slug)
         if args.save_preds and model_label in METRIC_MODELS
         else None
     )
 
-    if args.load_preds:
+    if args.no_align or args.load_preds:
         missing = [p for p in pairs if not os.path.isfile(
             os.path.join(pred_depth_dir, os.path.splitext(os.path.basename(p["rgb"]))[0] + ".npy"))]
         if missing:
@@ -236,21 +240,30 @@ def main():
             return predict_hf(pipe, rgb_path, invert)
 
     results = evaluate(pairs, get_pred, pred_depth_dir if args.save_preds else None,
-                       metric_depth_dir)
-    results["model"] = model_label
+                       metric_depth_dir, align=not args.no_align)
+    results["model"] = model_label + " (no-align)" if args.no_align else model_label
 
     session  = os.path.basename(os.path.normpath(args.dataset_dir))
     out_dir  = os.path.join(PROJECT_ROOT, "outputs", "quest", session)
     os.makedirs(out_dir, exist_ok=True)
     csv_path = os.path.join(out_dir, "eval_results.csv")
 
-    write_header = not os.path.isfile(csv_path)
-    with open(csv_path, "a", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=RESULT_FIELDS)
-        if write_header:
-            w.writeheader()
-        w.writerow({k: f"{results[k]:.4f}" if isinstance(results[k], float) else results[k]
-                    for k in RESULT_FIELDS})
+    existing_models = set()
+    if os.path.isfile(csv_path):
+        with open(csv_path, newline="") as f:
+            for row in csv.DictReader(f):
+                existing_models.add(row["model"])
+
+    if results["model"] in existing_models:
+        print(f"\n[skip] {results['model']} already in {csv_path}")
+    else:
+        write_header = not os.path.isfile(csv_path)
+        with open(csv_path, "a", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=RESULT_FIELDS)
+            if write_header:
+                w.writeheader()
+            w.writerow({k: f"{results[k]:.4f}" if isinstance(results[k], float) else results[k]
+                        for k in RESULT_FIELDS})
 
     print(f"\nResults → {csv_path}")
     print(f"\n{'Model':<45} {'AbsRel':>8} {'RMSE':>8} {'δ<1.25':>8} {'SSIM':>8} {'Lat(ms)':>9}")
