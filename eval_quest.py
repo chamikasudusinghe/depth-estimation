@@ -19,6 +19,11 @@ INVERT_MODELS = {
     "Intel/dpt-large",
 }
 
+METRIC_MODELS = {
+    "apple/DepthPro-hf",
+    "depth-anything/DA3METRIC-LARGE",
+}
+
 DA3_MODELS = {
     "depth-anything/DA3NESTED-GIANT-LARGE-1.1",
     "depth-anything/DA3-GIANT-1.1",
@@ -144,21 +149,26 @@ def resize_to(arr: np.ndarray, h: int, w: int) -> np.ndarray:
     )
 
 
-def evaluate(pairs: list[dict], get_pred, save_dir: str | None) -> dict:
+def evaluate(pairs: list[dict], get_pred, save_dir: str | None,
+             metric_save_dir: str | None = None) -> dict:
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
+    if metric_save_dir:
+        os.makedirs(metric_save_dir, exist_ok=True)
     all_metrics, latencies = [], []
     for p in pairs:
         pred, lat = get_pred(p["rgb"])
         latencies.append(lat)
+        ts   = os.path.splitext(os.path.basename(p["rgb"]))[0]
         gt   = np.load(p["gt"]).astype(np.float64)
         mask = gt > 1e-3
+        if metric_save_dir:
+            np.save(os.path.join(metric_save_dir, f"{ts}.npy"), pred.astype(np.float32))
         if pred.shape != gt.shape:
             pred = resize_to(pred, gt.shape[0], gt.shape[1])
         pred_aligned = align_scale_shift(pred, gt, mask)
         all_metrics.append(compute_metrics(pred_aligned, gt, mask))
         if save_dir:
-            ts = os.path.splitext(os.path.basename(p["rgb"]))[0]
             np.save(os.path.join(save_dir, f"{ts}.npy"), pred_aligned.astype(np.float32))
     avg = {k: float(np.mean([m[k] for m in all_metrics])) for k in all_metrics[0]}
     avg["mean_latency_ms"] = float(np.mean(latencies))
@@ -186,9 +196,14 @@ def main():
         raise ValueError(f"No pairs found in {args.dataset_dir}")
     print(f"Loaded {len(pairs)} pairs")
 
-    model_label    = args.model
-    model_slug     = slugify(model_label)
-    pred_depth_dir = os.path.join(args.dataset_dir, "pred_depth", model_slug)
+    model_label       = args.model
+    model_slug        = slugify(model_label)
+    pred_depth_dir    = os.path.join(args.dataset_dir, "pred_depth", model_slug)
+    metric_depth_dir  = (
+        os.path.join(args.dataset_dir, "pred_depth_metric", model_slug)
+        if args.save_preds and model_label in METRIC_MODELS
+        else None
+    )
 
     if args.load_preds:
         missing = [p for p in pairs if not os.path.isfile(
@@ -220,7 +235,8 @@ def main():
         def get_pred(rgb_path):
             return predict_hf(pipe, rgb_path, invert)
 
-    results = evaluate(pairs, get_pred, pred_depth_dir if args.save_preds else None)
+    results = evaluate(pairs, get_pred, pred_depth_dir if args.save_preds else None,
+                       metric_depth_dir)
     results["model"] = model_label
 
     session  = os.path.basename(os.path.normpath(args.dataset_dir))

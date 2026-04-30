@@ -162,6 +162,7 @@ def main():
     (out / "rgb").mkdir(parents=True, exist_ok=True)
     (out / "depth").mkdir(parents=True, exist_ok=True)
     (out / "pred_depth").mkdir(parents=True, exist_ok=True)
+    (out / "pred_depth_metric").mkdir(parents=True, exist_ok=True)
     (out / "rgb_extrinsics").mkdir(parents=True, exist_ok=True)
     (out / "depth_extrinsics").mkdir(parents=True, exist_ok=True)
 
